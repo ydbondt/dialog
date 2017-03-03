@@ -3,9 +3,9 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.DialogService = exports.AiDialogHeader = exports.AiDialogFooter = exports.DialogConfiguration = exports.DialogController = exports.dialogOptions = exports.DialogResult = exports.AiDialogBody = exports.AiDialog = exports.AttachFocus = exports.Renderer = exports.DialogRenderer = undefined;
+exports.DialogService = exports.AiDialogHeader = exports.AiDialogFooter = exports.DialogConfiguration = exports.DialogController = exports.dialogOptions = exports.DialogResult = exports.DialogCancelError = exports.AiDialogBody = exports.AiDialog = exports.AttachFocus = exports.Renderer = exports.DialogRenderer = exports.hasTransition = exports.transitionEvent = undefined;
 
-var _dec, _class, _dec2, _class3, _class4, _temp, _dec3, _dec4, _class5, _dec5, _dec6, _class6, _dec7, _dec8, _class10, _desc, _value, _class11, _descriptor, _descriptor2, _class12, _temp2, _dec9, _dec10, _class13, _class14, _temp3, _class15, _temp4;
+var _dec, _class, _dec2, _class3, _class4, _temp, _dec3, _dec4, _class5, _dec5, _dec6, _class6, _dec7, _dec8, _class9, _desc, _value, _class10, _descriptor, _descriptor2, _class11, _temp2, _dec9, _dec10, _class12, _class13, _temp3, _class14, _temp4;
 
 exports.invokeLifecycle = invokeLifecycle;
 
@@ -60,11 +60,15 @@ function _initializerWarningHelper(descriptor, context) {
   throw new Error('Decorating class property failed. Please ensure that transform-class-properties is enabled.');
 }
 
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var containerTagName = 'ai-dialog-container';
 var overlayTagName = 'ai-dialog-overlay';
-var transitionEvent = function () {
+var transitionEvent = exports.transitionEvent = function () {
   var transition = null;
 
   return function () {
@@ -86,6 +90,24 @@ var transitionEvent = function () {
     }
   };
 }();
+var hasTransition = exports.hasTransition = function () {
+  var unprefixedName = 'transitionDuration';
+  var el = _aureliaPal.DOM.createElement('fakeelement');
+  var prefixedNames = ['webkitTransitionDuration', 'oTransitionDuration'];
+  var transitionDurationName = void 0;
+  if (unprefixedName in el.style) {
+    transitionDurationName = unprefixedName;
+  } else {
+    transitionDurationName = prefixedNames.find(function (prefixed) {
+      return prefixed in el.style;
+    });
+  }
+  return function (element) {
+    return !!transitionDurationName && !!_aureliaPal.DOM.getComputedStyle(element)[transitionDurationName].split(',').find(function (duration) {
+      return !!parseFloat(duration);
+    });
+  };
+}();
 
 var DialogRenderer = exports.DialogRenderer = (_dec = (0, _aureliaDependencyInjection.transient)(), _dec(_class = function () {
   function DialogRenderer() {
@@ -96,7 +118,7 @@ var DialogRenderer = exports.DialogRenderer = (_dec = (0, _aureliaDependencyInje
     this._escapeKeyEventHandler = function (e) {
       if (e.keyCode === 27) {
         var top = _this._dialogControllers[_this._dialogControllers.length - 1];
-        if (top && top.settings.lock !== true) {
+        if (top && (top.settings.lock !== true || top.settings.enableEscClose === true)) {
           top.cancel();
         }
       }
@@ -168,7 +190,7 @@ var DialogRenderer = exports.DialogRenderer = (_dec = (0, _aureliaDependencyInje
 
     return new Promise(function (resolve) {
       var renderer = _this2;
-      if (settings.ignoreTransitions) {
+      if (settings.ignoreTransitions || !hasTransition(_this2.modalContainer)) {
         resolve();
       } else {
         _this2.modalContainer.addEventListener(transitionEvent(), onTransitionEnd);
@@ -208,7 +230,7 @@ var DialogRenderer = exports.DialogRenderer = (_dec = (0, _aureliaDependencyInje
 
     return new Promise(function (resolve) {
       var renderer = _this3;
-      if (settings.ignoreTransitions) {
+      if (settings.ignoreTransitions || !hasTransition(_this3.modalContainer)) {
         resolve();
       } else {
         _this3.modalContainer.addEventListener(transitionEvent(), onTransitionEnd);
@@ -270,17 +292,15 @@ var Renderer = exports.Renderer = function () {
 
 function invokeLifecycle(instance, name, model) {
   if (typeof instance[name] === 'function') {
-    var result = instance[name](model);
+    return Promise.resolve().then(function () {
+      return instance[name](model);
+    }).then(function (result) {
+      if (result !== null && result !== undefined) {
+        return result;
+      }
 
-    if (result instanceof Promise) {
-      return result;
-    }
-
-    if (result !== null && result !== undefined) {
-      return Promise.resolve(result);
-    }
-
-    return Promise.resolve(true);
+      return true;
+    });
   }
 
   return Promise.resolve(true);
@@ -314,6 +334,25 @@ var AiDialogBody = exports.AiDialogBody = (_dec5 = (0, _aureliaTemplating.custom
   _classCallCheck(this, AiDialogBody);
 }) || _class6) || _class6);
 
+var DialogCancelError = exports.DialogCancelError = function (_Error) {
+  _inherits(DialogCancelError, _Error);
+
+  function DialogCancelError() {
+    var cancellationReason = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
+
+    _classCallCheck(this, DialogCancelError);
+
+    var _this4 = _possibleConstructorReturn(this, _Error.call(this, 'Operation cancelled.'));
+
+    _this4.wasCancelled = true;
+
+    _this4.reason = cancellationReason;
+    return _this4;
+  }
+
+  return DialogCancelError;
+}(Error);
+
 var DialogResult = exports.DialogResult = function DialogResult(cancelled, output) {
   _classCallCheck(this, DialogResult);
 
@@ -327,7 +366,10 @@ var dialogOptions = exports.dialogOptions = {
   lock: true,
   centerHorizontalOnly: false,
   startingZIndex: 1000,
-  ignoreTransitions: false
+  ignoreTransitions: false,
+  rejectOnCancel: false,
+  yieldController: false,
+  enableEscClose: false
 };
 
 var DialogController = exports.DialogController = function () {
@@ -349,38 +391,46 @@ var DialogController = exports.DialogController = function () {
   };
 
   DialogController.prototype.error = function error(message) {
-    var _this4 = this;
+    var _this5 = this;
 
     return invokeLifecycle(this.viewModel, 'deactivate').then(function () {
-      return _this4.renderer.hideDialog(_this4);
+      return _this5.renderer.hideDialog(_this5);
     }).then(function () {
-      _this4.controller.unbind();
-      _this4._reject(message);
+      _this5.controller.unbind();
+      _this5._reject(message);
     });
   };
 
   DialogController.prototype.close = function close(ok, output) {
-    var _this5 = this;
+    var _this6 = this;
 
     if (this._closePromise) {
       return this._closePromise;
     }
 
-    this._closePromise = invokeLifecycle(this.viewModel, 'canDeactivate').then(function (canDeactivate) {
+    this._closePromise = invokeLifecycle(this.viewModel, 'canDeactivate', ok).then(function (canDeactivate) {
       if (canDeactivate) {
-        return invokeLifecycle(_this5.viewModel, 'deactivate').then(function () {
-          return _this5.renderer.hideDialog(_this5);
+        return invokeLifecycle(_this6.viewModel, 'deactivate').then(function () {
+          return _this6.renderer.hideDialog(_this6);
         }).then(function () {
+          _this6.controller.unbind();
           var result = new DialogResult(!ok, output);
-          _this5.controller.unbind();
-          _this5._resolve(result);
-          return result;
+          if (!_this6.settings.rejectOnCancel || ok) {
+            _this6._resolve(result);
+          } else {
+            _this6._reject(new DialogCancelError(output));
+          }
+          return { wasCancelled: false };
         });
       }
 
-      _this5._closePromise = undefined;
+      _this6._closePromise = undefined;
+      if (!_this6.settings.rejectOnCancel) {
+        return { wasCancelled: true };
+      }
+      return Promise.reject(new DialogCancelError());
     }, function (e) {
-      _this5._closePromise = undefined;
+      _this6._closePromise = undefined;
       return Promise.reject(e);
     });
 
@@ -438,11 +488,11 @@ var DialogConfiguration = exports.DialogConfiguration = function () {
   };
 
   DialogConfiguration.prototype._apply = function _apply() {
-    var _this6 = this;
+    var _this7 = this;
 
     this.aurelia.transient(Renderer, this.renderer);
     this.resources.forEach(function (resourceName) {
-      return _this6.aurelia.globalResources(resources[resourceName]);
+      return _this7.aurelia.globalResources(resources[resourceName]);
     });
 
     if (this.cssText) {
@@ -453,7 +503,7 @@ var DialogConfiguration = exports.DialogConfiguration = function () {
   return DialogConfiguration;
 }();
 
-var AiDialogFooter = exports.AiDialogFooter = (_dec7 = (0, _aureliaTemplating.customElement)('ai-dialog-footer'), _dec8 = (0, _aureliaTemplating.inlineView)('\n  <template>\n    <slot></slot>\n\n    <template if.bind="buttons.length > 0">\n      <button type="button" class="btn btn-default" repeat.for="button of buttons" click.trigger="close(button)">${button}</button>\n    </template>\n  </template>\n'), _dec7(_class10 = _dec8(_class10 = (_class11 = (_temp2 = _class12 = function () {
+var AiDialogFooter = exports.AiDialogFooter = (_dec7 = (0, _aureliaTemplating.customElement)('ai-dialog-footer'), _dec8 = (0, _aureliaTemplating.inlineView)('\n  <template>\n    <slot></slot>\n\n    <template if.bind="buttons.length > 0">\n      <button type="button" class="btn btn-default" repeat.for="button of buttons" click.trigger="close(button)">${button}</button>\n    </template>\n  </template>\n'), _dec7(_class9 = _dec8(_class9 = (_class10 = (_temp2 = _class11 = function () {
   function AiDialogFooter(controller) {
     _classCallCheck(this, AiDialogFooter);
 
@@ -483,60 +533,92 @@ var AiDialogFooter = exports.AiDialogFooter = (_dec7 = (0, _aureliaTemplating.cu
   };
 
   return AiDialogFooter;
-}(), _class12.inject = [DialogController], _temp2), (_descriptor = _applyDecoratedDescriptor(_class11.prototype, 'buttons', [_aureliaTemplating.bindable], {
+}(), _class11.inject = [DialogController], _temp2), (_descriptor = _applyDecoratedDescriptor(_class10.prototype, 'buttons', [_aureliaTemplating.bindable], {
   enumerable: true,
   initializer: function initializer() {
     return [];
   }
-}), _descriptor2 = _applyDecoratedDescriptor(_class11.prototype, 'useDefaultButtons', [_aureliaTemplating.bindable], {
+}), _descriptor2 = _applyDecoratedDescriptor(_class10.prototype, 'useDefaultButtons', [_aureliaTemplating.bindable], {
   enumerable: true,
   initializer: function initializer() {
     return false;
   }
-})), _class11)) || _class10) || _class10);
-var AiDialogHeader = exports.AiDialogHeader = (_dec9 = (0, _aureliaTemplating.customElement)('ai-dialog-header'), _dec10 = (0, _aureliaTemplating.inlineView)('\n  <template>\n    <button type="button" class="dialog-close" aria-label="Close" if.bind="!controller.settings.lock" click.trigger="controller.cancel()">\n      <span aria-hidden="true">&times;</span>\n    </button>\n\n    <div class="dialog-header-content">\n      <slot></slot>\n    </div>\n  </template>\n'), _dec9(_class13 = _dec10(_class13 = (_temp3 = _class14 = function AiDialogHeader(controller) {
+})), _class10)) || _class9) || _class9);
+var AiDialogHeader = exports.AiDialogHeader = (_dec9 = (0, _aureliaTemplating.customElement)('ai-dialog-header'), _dec10 = (0, _aureliaTemplating.inlineView)('\n  <template>\n    <button type="button" class="dialog-close" aria-label="Close" if.bind="!controller.settings.lock" click.trigger="controller.cancel()">\n      <span aria-hidden="true">&times;</span>\n    </button>\n\n    <div class="dialog-header-content">\n      <slot></slot>\n    </div>\n  </template>\n'), _dec9(_class12 = _dec10(_class12 = (_temp3 = _class13 = function AiDialogHeader(controller) {
   _classCallCheck(this, AiDialogHeader);
 
   this.controller = controller;
-}, _class14.inject = [DialogController], _temp3)) || _class13) || _class13);
-var DialogService = exports.DialogService = (_temp4 = _class15 = function () {
+}, _class13.inject = [DialogController], _temp3)) || _class12) || _class12);
+var DialogService = exports.DialogService = (_temp4 = _class14 = function () {
   function DialogService(container, compositionEngine) {
     _classCallCheck(this, DialogService);
 
     this.container = container;
     this.compositionEngine = compositionEngine;
     this.controllers = [];
-    this.hasActiveDialog = false;
+    this.hasActiveDialog = this.hasOpenDialog = false;
   }
 
   DialogService.prototype.open = function open(settings) {
-    return this.openAndYieldController(settings).then(function (controller) {
-      return controller.result;
-    });
-  };
-
-  DialogService.prototype.openAndYieldController = function openAndYieldController(settings) {
-    var _this7 = this;
+    var _this8 = this;
 
     var childContainer = this.container.createChild();
     var dialogController = void 0;
-    var promise = new Promise(function (resolve, reject) {
+    var closeResult = new Promise(function (resolve, reject) {
       dialogController = new DialogController(childContainer.get(Renderer), _createSettings(settings), resolve, reject);
     });
     childContainer.registerInstance(DialogController, dialogController);
-    dialogController.result = promise;
-    dialogController.result.then(function () {
-      _removeController(_this7, dialogController);
+
+    closeResult.then(function () {
+      _removeController(_this8, dialogController);
     }, function () {
-      _removeController(_this7, dialogController);
+      _removeController(_this8, dialogController);
     });
-    return _openDialog(this, childContainer, dialogController).then(function () {
-      return dialogController;
+
+    var openResult = _getViewModel(this.container, this.compositionEngine, childContainer, dialogController).then(function (compositionContext) {
+      dialogController.viewModel = compositionContext.viewModel;
+      dialogController.slot = compositionContext.viewSlot;
+      return _tryActivate(_this8, dialogController, compositionContext).then(function (result) {
+        if (result) {
+          return result;
+        }
+        return {
+          wasCancelled: false,
+          controller: dialogController,
+          closeResult: closeResult
+        };
+      });
+    });
+
+    return settings.yieldController ? openResult : openResult.then(function (result) {
+      return result.wasCancelled ? result : result.closeResult;
+    });
+  };
+
+  DialogService.prototype.closeAll = function closeAll() {
+    return Promise.all(this.controllers.slice(0).map(function (controller) {
+      if (!controller.settings.rejectOnCancel) {
+        return controller.cancel().then(function (result) {
+          if (result.wasCancelled) {
+            return controller;
+          }
+        });
+      }
+      return controller.cancel().then(function () {}).catch(function (reason) {
+        if (reason.wasCancelled) {
+          return controller;
+        }
+        return Promise.reject(reason);
+      });
+    })).then(function (unclosedControllers) {
+      return unclosedControllers.filter(function (unclosed) {
+        return !!unclosed;
+      });
     });
   };
 
   return DialogService;
-}(), _class15.inject = [_aureliaDependencyInjection.Container, _aureliaTemplating.CompositionEngine], _temp4);
+}(), _class14.inject = [_aureliaDependencyInjection.Container, _aureliaTemplating.CompositionEngine], _temp4);
 
 
 function _createSettings(settings) {
@@ -545,10 +627,10 @@ function _createSettings(settings) {
   return settings;
 }
 
-function _openDialog(service, childContainer, dialogController) {
+function _getViewModel(container, compositionEngine, childContainer, dialogController) {
   var host = dialogController.renderer.getDialogContainer();
-  var instruction = {
-    container: service.container,
+  var compositionContext = {
+    container: container,
     childContainer: childContainer,
     model: dialogController.settings.model,
     view: dialogController.settings.view,
@@ -557,41 +639,51 @@ function _openDialog(service, childContainer, dialogController) {
     host: host
   };
 
-  return _getViewModel(instruction, service.compositionEngine).then(function (returnedInstruction) {
-    dialogController.viewModel = returnedInstruction.viewModel;
-    dialogController.slot = returnedInstruction.viewSlot;
+  if (typeof compositionContext.viewModel === 'function') {
+    compositionContext.viewModel = _aureliaMetadata.Origin.get(compositionContext.viewModel).moduleId;
+  }
 
-    return invokeLifecycle(dialogController.viewModel, 'canActivate', dialogController.settings.model).then(function (canActivate) {
-      if (canActivate) {
-        return service.compositionEngine.compose(returnedInstruction).then(function (controller) {
-          service.controllers.push(dialogController);
-          service.hasActiveDialog = !!service.controllers.length;
-          dialogController.controller = controller;
-          dialogController.view = controller.view;
+  if (typeof compositionContext.viewModel === 'string') {
+    return compositionEngine.ensureViewModel(compositionContext);
+  }
 
-          return dialogController.renderer.showDialog(dialogController);
-        });
-      }
+  return Promise.resolve(compositionContext);
+}
+
+function _tryActivate(service, dialogController, compositionContext) {
+  return invokeLifecycle(dialogController.viewModel, 'canActivate', dialogController.settings.model).then(function (canActivate) {
+    if (canActivate) {
+      return _composeAndShowDialog(service, dialogController, compositionContext);
+    }
+
+    if (dialogController.settings.rejectOnCancel) {
+      throw new DialogCancelError();
+    }
+
+    return {
+      wasCancelled: true
+    };
+  });
+}
+
+function _composeAndShowDialog(service, dialogController, compositionContext) {
+  return service.compositionEngine.compose(compositionContext).then(function (controller) {
+    dialogController.controller = controller;
+    dialogController.view = controller.view;
+    return dialogController.renderer.showDialog(dialogController).then(function () {
+      service.controllers.push(dialogController);
+      service.hasActiveDialog = service.hasOpenDialog = !!service.controllers.length;
+    }).catch(function (reason) {
+      invokeLifecycle(dialogController.viewModel, 'deactivate');
+      return Promise.reject(reason);
     });
   });
 }
 
-function _getViewModel(instruction, compositionEngine) {
-  if (typeof instruction.viewModel === 'function') {
-    instruction.viewModel = _aureliaMetadata.Origin.get(instruction.viewModel).moduleId;
-  }
-
-  if (typeof instruction.viewModel === 'string') {
-    return compositionEngine.ensureViewModel(instruction);
-  }
-
-  return Promise.resolve(instruction);
-}
-
-function _removeController(service, controller) {
-  var i = service.controllers.indexOf(controller);
+function _removeController(service, dialogCOntroller) {
+  var i = service.controllers.indexOf(dialogCOntroller);
   if (i !== -1) {
     service.controllers.splice(i, 1);
-    service.hasActiveDialog = !!service.controllers.length;
+    service.hasActiveDialog = service.hasOpenDialog = !!service.controllers.length;
   }
 }

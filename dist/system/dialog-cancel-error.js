@@ -1,59 +1,59 @@
 'use strict';
 
 System.register([], function (_export, _context) {
-    "use strict";
+  "use strict";
 
-    var DialogCancelError;
+  var DialogCancelError;
 
-    
+  
 
-    function _possibleConstructorReturn(self, call) {
-        if (!self) {
-            throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
-        }
-
-        return call && (typeof call === "object" || typeof call === "function") ? call : self;
+  function _possibleConstructorReturn(self, call) {
+    if (!self) {
+      throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
     }
 
-    function _inherits(subClass, superClass) {
-        if (typeof superClass !== "function" && superClass !== null) {
-            throw new TypeError("Super expression must either be null or a function, not " + typeof superClass);
-        }
+    return call && (typeof call === "object" || typeof call === "function") ? call : self;
+  }
 
-        subClass.prototype = Object.create(superClass && superClass.prototype, {
-            constructor: {
-                value: subClass,
-                enumerable: false,
-                writable: true,
-                configurable: true
-            }
-        });
-        if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
+  function _inherits(subClass, superClass) {
+    if (typeof superClass !== "function" && superClass !== null) {
+      throw new TypeError("Super expression must either be null or a function, not " + typeof superClass);
     }
 
-    return {
-        setters: [],
-        execute: function () {
-            _export('DialogCancelError', DialogCancelError = function (_Error) {
-                _inherits(DialogCancelError, _Error);
+    subClass.prototype = Object.create(superClass && superClass.prototype, {
+      constructor: {
+        value: subClass,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+    if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
+  }
 
-                function DialogCancelError() {
-                    var cancellationReason = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
+  return {
+    setters: [],
+    execute: function () {
+      _export('DialogCancelError', DialogCancelError = function (_Error) {
+        _inherits(DialogCancelError, _Error);
 
-                    
+        function DialogCancelError() {
+          var cancellationReason = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
 
-                    var _this = _possibleConstructorReturn(this, _Error.call(this, 'Dialog cancelled.'));
+          
 
-                    _this.wasCancelled = true;
+          var _this = _possibleConstructorReturn(this, _Error.call(this, 'Operation cancelled.'));
 
-                    _this.reason = cancellationReason;
-                    return _this;
-                }
+          _this.wasCancelled = true;
 
-                return DialogCancelError;
-            }(Error));
-
-            _export('DialogCancelError', DialogCancelError);
+          _this.reason = cancellationReason;
+          return _this;
         }
-    };
+
+        return DialogCancelError;
+      }(Error));
+
+      _export('DialogCancelError', DialogCancelError);
+    }
+  };
 });

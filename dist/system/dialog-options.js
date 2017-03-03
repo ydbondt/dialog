@@ -11,7 +11,10 @@ System.register([], function (_export, _context) {
         lock: true,
         centerHorizontalOnly: false,
         startingZIndex: 1000,
-        ignoreTransitions: false
+        ignoreTransitions: false,
+        rejectOnCancel: false,
+        yieldController: false,
+        enableEscClose: false
       });
 
       _export("dialogOptions", dialogOptions);

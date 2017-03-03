@@ -7,5 +7,8 @@ var dialogOptions = exports.dialogOptions = {
   lock: true,
   centerHorizontalOnly: false,
   startingZIndex: 1000,
-  ignoreTransitions: false
+  ignoreTransitions: false,
+  rejectOnCancel: false,
+  yieldController: false,
+  enableEscClose: false
 };

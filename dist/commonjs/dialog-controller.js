@@ -9,6 +9,8 @@ var _lifecycle = require('./lifecycle');
 
 var _dialogResult = require('./dialog-result');
 
+var _dialogCancelError = require('./dialog-cancel-error');
+
 
 
 var DialogController = exports.DialogController = function () {
@@ -47,19 +49,27 @@ var DialogController = exports.DialogController = function () {
       return this._closePromise;
     }
 
-    this._closePromise = (0, _lifecycle.invokeLifecycle)(this.viewModel, 'canDeactivate').then(function (canDeactivate) {
+    this._closePromise = (0, _lifecycle.invokeLifecycle)(this.viewModel, 'canDeactivate', ok).then(function (canDeactivate) {
       if (canDeactivate) {
         return (0, _lifecycle.invokeLifecycle)(_this2.viewModel, 'deactivate').then(function () {
           return _this2.renderer.hideDialog(_this2);
         }).then(function () {
-          var result = new _dialogResult.DialogResult(!ok, output);
           _this2.controller.unbind();
-          _this2._resolve(result);
-          return result;
+          var result = new _dialogResult.DialogResult(!ok, output);
+          if (!_this2.settings.rejectOnCancel || ok) {
+            _this2._resolve(result);
+          } else {
+            _this2._reject(new _dialogCancelError.DialogCancelError(output));
+          }
+          return { wasCancelled: false };
         });
       }
 
       _this2._closePromise = undefined;
+      if (!_this2.settings.rejectOnCancel) {
+        return { wasCancelled: true };
+      }
+      return Promise.reject(new _dialogCancelError.DialogCancelError());
     }, function (e) {
       _this2._closePromise = undefined;
       return Promise.reject(e);

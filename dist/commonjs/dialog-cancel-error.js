@@ -1,7 +1,7 @@
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
-    value: true
+  value: true
 });
 
 
@@ -11,20 +11,20 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 var DialogCancelError = exports.DialogCancelError = function (_Error) {
-    _inherits(DialogCancelError, _Error);
+  _inherits(DialogCancelError, _Error);
 
-    function DialogCancelError() {
-        var cancellationReason = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
+  function DialogCancelError() {
+    var cancellationReason = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
 
-        
+    
 
-        var _this = _possibleConstructorReturn(this, _Error.call(this, 'Dialog cancelled.'));
+    var _this = _possibleConstructorReturn(this, _Error.call(this, 'Operation cancelled.'));
 
-        _this.wasCancelled = true;
+    _this.wasCancelled = true;
 
-        _this.reason = cancellationReason;
-        return _this;
-    }
+    _this.reason = cancellationReason;
+    return _this;
+  }
 
-    return DialogCancelError;
+  return DialogCancelError;
 }(Error);

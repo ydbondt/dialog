@@ -3,7 +3,7 @@
 System.register(['aurelia-pal', 'aurelia-dependency-injection'], function (_export, _context) {
   "use strict";
 
-  var DOM, transient, _dec, _class, containerTagName, overlayTagName, transitionEvent, DialogRenderer;
+  var DOM, transient, _dec, _class, containerTagName, overlayTagName, transitionEvent, hasTransition, DialogRenderer;
 
   
 
@@ -24,7 +24,7 @@ System.register(['aurelia-pal', 'aurelia-dependency-injection'], function (_expo
       containerTagName = 'ai-dialog-container';
       overlayTagName = 'ai-dialog-overlay';
 
-      transitionEvent = function () {
+      _export('transitionEvent', transitionEvent = function () {
         var transition = null;
 
         return function () {
@@ -45,7 +45,30 @@ System.register(['aurelia-pal', 'aurelia-dependency-injection'], function (_expo
             }
           }
         };
-      }();
+      }());
+
+      _export('transitionEvent', transitionEvent);
+
+      _export('hasTransition', hasTransition = function () {
+        var unprefixedName = 'transitionDuration';
+        var el = DOM.createElement('fakeelement');
+        var prefixedNames = ['webkitTransitionDuration', 'oTransitionDuration'];
+        var transitionDurationName = void 0;
+        if (unprefixedName in el.style) {
+          transitionDurationName = unprefixedName;
+        } else {
+          transitionDurationName = prefixedNames.find(function (prefixed) {
+            return prefixed in el.style;
+          });
+        }
+        return function (element) {
+          return !!transitionDurationName && !!DOM.getComputedStyle(element)[transitionDurationName].split(',').find(function (duration) {
+            return !!parseFloat(duration);
+          });
+        };
+      }());
+
+      _export('hasTransition', hasTransition);
 
       _export('DialogRenderer', DialogRenderer = (_dec = transient(), _dec(_class = function () {
         function DialogRenderer() {
@@ -56,7 +79,7 @@ System.register(['aurelia-pal', 'aurelia-dependency-injection'], function (_expo
           this._escapeKeyEventHandler = function (e) {
             if (e.keyCode === 27) {
               var top = _this._dialogControllers[_this._dialogControllers.length - 1];
-              if (top && top.settings.lock !== true) {
+              if (top && (top.settings.lock !== true || top.settings.enableEscClose === true)) {
                 top.cancel();
               }
             }
@@ -128,7 +151,7 @@ System.register(['aurelia-pal', 'aurelia-dependency-injection'], function (_expo
 
           return new Promise(function (resolve) {
             var renderer = _this2;
-            if (settings.ignoreTransitions) {
+            if (settings.ignoreTransitions || !hasTransition(_this2.modalContainer)) {
               resolve();
             } else {
               _this2.modalContainer.addEventListener(transitionEvent(), onTransitionEnd);
@@ -168,7 +191,7 @@ System.register(['aurelia-pal', 'aurelia-dependency-injection'], function (_expo
 
           return new Promise(function (resolve) {
             var renderer = _this3;
-            if (settings.ignoreTransitions) {
+            if (settings.ignoreTransitions || !hasTransition(_this3.modalContainer)) {
               resolve();
             } else {
               _this3.modalContainer.addEventListener(transitionEvent(), onTransitionEnd);

@@ -1,5 +1,6 @@
 import { invokeLifecycle } from './lifecycle';
 import { DialogResult } from './dialog-result';
+import { DialogCancelError } from './dialog-cancel-error';
 
 export let DialogController = class DialogController {
   constructor(renderer, settings, resolve, reject) {
@@ -31,19 +32,27 @@ export let DialogController = class DialogController {
       return this._closePromise;
     }
 
-    this._closePromise = invokeLifecycle(this.viewModel, 'canDeactivate').then(canDeactivate => {
+    this._closePromise = invokeLifecycle(this.viewModel, 'canDeactivate', ok).then(canDeactivate => {
       if (canDeactivate) {
         return invokeLifecycle(this.viewModel, 'deactivate').then(() => {
           return this.renderer.hideDialog(this);
         }).then(() => {
-          let result = new DialogResult(!ok, output);
           this.controller.unbind();
-          this._resolve(result);
-          return result;
+          let result = new DialogResult(!ok, output);
+          if (!this.settings.rejectOnCancel || ok) {
+            this._resolve(result);
+          } else {
+            this._reject(new DialogCancelError(output));
+          }
+          return { wasCancelled: false };
         });
       }
 
       this._closePromise = undefined;
+      if (!this.settings.rejectOnCancel) {
+        return { wasCancelled: true };
+      }
+      return Promise.reject(new DialogCancelError());
     }, e => {
       this._closePromise = undefined;
       return Promise.reject(e);

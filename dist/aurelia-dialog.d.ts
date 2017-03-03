@@ -16,6 +16,29 @@ import {
 import {
   Origin
 } from 'aurelia-metadata';
+export declare interface DialogSettings {
+  viewModel: any;
+  view?: any;
+  model?: any;
+  lock?: boolean;
+  startingZIndex?: number;
+  centerHorizontalOnly?: boolean;
+  rejectOnCancel?: boolean;
+  yieldController?: boolean;
+  ignoreTransitions?: boolean;
+  position?: (modalContainer: Element, modalOverlay: Element) => void;
+}
+export declare interface CloseDialogResult {
+  wasCancelled: boolean;
+  output?: any;
+}
+export declare interface OpenDialogResult {
+  wasCancelled: boolean;
+  controller?: DialogController;
+  closeResult?: Promise<CloseDialogResult>;
+}
+export declare const transitionEvent: any;
+export declare const hasTransition: any;
 export declare class DialogRenderer {
   getDialogContainer(): any;
   showDialog(dialogController: DialogController): any;
@@ -68,6 +91,11 @@ export declare class AiDialog {
 export declare class AiDialogBody {
 
 }
+export declare class DialogCancelError extends Error {
+  wasCancelled: any;
+  reason: any;
+  constructor(cancellationReason?: any);
+}
 
 /**
  * The result of a dialog open operation.
@@ -91,6 +119,9 @@ export declare class DialogResult {
 }
 export declare let dialogOptions: any;
 
+/**
+ * A controller object for a Dialog instance.
+ */
 /**
  * A controller object for a Dialog instance.
  */
@@ -209,8 +240,9 @@ export declare class DialogService {
   controllers: DialogController[];
   
   /**
-     * Is there an active dialog
+     * Is there an open dialog
      */
+  hasOpenDialog: boolean;
   hasActiveDialog: boolean;
   constructor(container: Container, compositionEngine: CompositionEngine);
   
@@ -219,13 +251,11 @@ export declare class DialogService {
      * @param settings Dialog settings for this dialog instance.
      * @return Promise A promise that settles when the dialog is closed.
      */
-  open(settings?: Object): Promise<DialogResult>;
+  open(settings?: DialogSettings): Promise<OpenDialogResult | CloseDialogResult>;
   
   /**
-     * Opens a new dialog.
-     * @param settings Dialog settings for this dialog instance.
-     * @return Promise A promise that settles when the dialog is opened.
-     * Resolves to the controller of the dialog.
+     * Closes all open dialogs at the time of invocation.
+     * @return Promise<DialogController[]> All controllers whose close operation was cancelled.
      */
-  openAndYieldController(settings?: Object): Promise<DialogController>;
+  closeAll(): Promise<DialogController[]>;
 }

@@ -1,9 +1,9 @@
 'use strict';
 
-System.register(['aurelia-metadata', 'aurelia-dependency-injection', 'aurelia-templating', './dialog-controller', './renderer', './lifecycle', './dialog-result', './dialog-options'], function (_export, _context) {
+System.register(['aurelia-metadata', 'aurelia-dependency-injection', 'aurelia-templating', './dialog-controller', './renderer', './lifecycle', './dialog-options', './dialog-cancel-error', './interfaces'], function (_export, _context) {
   "use strict";
 
-  var Origin, Container, CompositionEngine, ViewSlot, DialogController, Renderer, invokeLifecycle, DialogResult, dialogOptions, _class, _temp, DialogService;
+  var Origin, Container, CompositionEngine, ViewSlot, DialogController, Renderer, invokeLifecycle, dialogOptions, DialogCancelError, DialogSettings, OpenDialogResult, CloseDialogResult, _class, _temp, DialogService;
 
   
 
@@ -13,10 +13,10 @@ System.register(['aurelia-metadata', 'aurelia-dependency-injection', 'aurelia-te
     return settings;
   }
 
-  function _openDialog(service, childContainer, dialogController) {
+  function _getViewModel(container, compositionEngine, childContainer, dialogController) {
     var host = dialogController.renderer.getDialogContainer();
-    var instruction = {
-      container: service.container,
+    var compositionContext = {
+      container: container,
       childContainer: childContainer,
       model: dialogController.settings.model,
       view: dialogController.settings.view,
@@ -25,42 +25,52 @@ System.register(['aurelia-metadata', 'aurelia-dependency-injection', 'aurelia-te
       host: host
     };
 
-    return _getViewModel(instruction, service.compositionEngine).then(function (returnedInstruction) {
-      dialogController.viewModel = returnedInstruction.viewModel;
-      dialogController.slot = returnedInstruction.viewSlot;
+    if (typeof compositionContext.viewModel === 'function') {
+      compositionContext.viewModel = Origin.get(compositionContext.viewModel).moduleId;
+    }
 
-      return invokeLifecycle(dialogController.viewModel, 'canActivate', dialogController.settings.model).then(function (canActivate) {
-        if (canActivate) {
-          return service.compositionEngine.compose(returnedInstruction).then(function (controller) {
-            service.controllers.push(dialogController);
-            service.hasActiveDialog = !!service.controllers.length;
-            dialogController.controller = controller;
-            dialogController.view = controller.view;
+    if (typeof compositionContext.viewModel === 'string') {
+      return compositionEngine.ensureViewModel(compositionContext);
+    }
 
-            return dialogController.renderer.showDialog(dialogController);
-          });
-        }
+    return Promise.resolve(compositionContext);
+  }
+
+  function _tryActivate(service, dialogController, compositionContext) {
+    return invokeLifecycle(dialogController.viewModel, 'canActivate', dialogController.settings.model).then(function (canActivate) {
+      if (canActivate) {
+        return _composeAndShowDialog(service, dialogController, compositionContext);
+      }
+
+      if (dialogController.settings.rejectOnCancel) {
+        throw new DialogCancelError();
+      }
+
+      return {
+        wasCancelled: true
+      };
+    });
+  }
+
+  function _composeAndShowDialog(service, dialogController, compositionContext) {
+    return service.compositionEngine.compose(compositionContext).then(function (controller) {
+      dialogController.controller = controller;
+      dialogController.view = controller.view;
+      return dialogController.renderer.showDialog(dialogController).then(function () {
+        service.controllers.push(dialogController);
+        service.hasActiveDialog = service.hasOpenDialog = !!service.controllers.length;
+      }).catch(function (reason) {
+        invokeLifecycle(dialogController.viewModel, 'deactivate');
+        return Promise.reject(reason);
       });
     });
   }
 
-  function _getViewModel(instruction, compositionEngine) {
-    if (typeof instruction.viewModel === 'function') {
-      instruction.viewModel = Origin.get(instruction.viewModel).moduleId;
-    }
-
-    if (typeof instruction.viewModel === 'string') {
-      return compositionEngine.ensureViewModel(instruction);
-    }
-
-    return Promise.resolve(instruction);
-  }
-
-  function _removeController(service, controller) {
-    var i = service.controllers.indexOf(controller);
+  function _removeController(service, dialogCOntroller) {
+    var i = service.controllers.indexOf(dialogCOntroller);
     if (i !== -1) {
       service.controllers.splice(i, 1);
-      service.hasActiveDialog = !!service.controllers.length;
+      service.hasActiveDialog = service.hasOpenDialog = !!service.controllers.length;
     }
   }
   return {
@@ -77,10 +87,14 @@ System.register(['aurelia-metadata', 'aurelia-dependency-injection', 'aurelia-te
       Renderer = _renderer.Renderer;
     }, function (_lifecycle) {
       invokeLifecycle = _lifecycle.invokeLifecycle;
-    }, function (_dialogResult) {
-      DialogResult = _dialogResult.DialogResult;
     }, function (_dialogOptions) {
       dialogOptions = _dialogOptions.dialogOptions;
+    }, function (_dialogCancelError) {
+      DialogCancelError = _dialogCancelError.DialogCancelError;
+    }, function (_interfaces) {
+      DialogSettings = _interfaces.DialogSettings;
+      OpenDialogResult = _interfaces.OpenDialogResult;
+      CloseDialogResult = _interfaces.CloseDialogResult;
     }],
     execute: function () {
       _export('DialogService', DialogService = (_temp = _class = function () {
@@ -90,32 +104,64 @@ System.register(['aurelia-metadata', 'aurelia-dependency-injection', 'aurelia-te
           this.container = container;
           this.compositionEngine = compositionEngine;
           this.controllers = [];
-          this.hasActiveDialog = false;
+          this.hasActiveDialog = this.hasOpenDialog = false;
         }
 
         DialogService.prototype.open = function open(settings) {
-          return this.openAndYieldController(settings).then(function (controller) {
-            return controller.result;
-          });
-        };
-
-        DialogService.prototype.openAndYieldController = function openAndYieldController(settings) {
           var _this = this;
 
           var childContainer = this.container.createChild();
           var dialogController = void 0;
-          var promise = new Promise(function (resolve, reject) {
+          var closeResult = new Promise(function (resolve, reject) {
             dialogController = new DialogController(childContainer.get(Renderer), _createSettings(settings), resolve, reject);
           });
           childContainer.registerInstance(DialogController, dialogController);
-          dialogController.result = promise;
-          dialogController.result.then(function () {
+
+          closeResult.then(function () {
             _removeController(_this, dialogController);
           }, function () {
             _removeController(_this, dialogController);
           });
-          return _openDialog(this, childContainer, dialogController).then(function () {
-            return dialogController;
+
+          var openResult = _getViewModel(this.container, this.compositionEngine, childContainer, dialogController).then(function (compositionContext) {
+            dialogController.viewModel = compositionContext.viewModel;
+            dialogController.slot = compositionContext.viewSlot;
+            return _tryActivate(_this, dialogController, compositionContext).then(function (result) {
+              if (result) {
+                return result;
+              }
+              return {
+                wasCancelled: false,
+                controller: dialogController,
+                closeResult: closeResult
+              };
+            });
+          });
+
+          return settings.yieldController ? openResult : openResult.then(function (result) {
+            return result.wasCancelled ? result : result.closeResult;
+          });
+        };
+
+        DialogService.prototype.closeAll = function closeAll() {
+          return Promise.all(this.controllers.slice(0).map(function (controller) {
+            if (!controller.settings.rejectOnCancel) {
+              return controller.cancel().then(function (result) {
+                if (result.wasCancelled) {
+                  return controller;
+                }
+              });
+            }
+            return controller.cancel().then(function () {}).catch(function (reason) {
+              if (reason.wasCancelled) {
+                return controller;
+              }
+              return Promise.reject(reason);
+            });
+          })).then(function (unclosedControllers) {
+            return unclosedControllers.filter(function (unclosed) {
+              return !!unclosed;
+            });
           });
         };
 
