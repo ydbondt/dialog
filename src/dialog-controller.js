@@ -63,14 +63,15 @@ export class DialogController {
       return this._closePromise;
     }
 
-    this._closePromise = invokeLifecycle(this.viewModel, 'canDeactivate').then(canDeactivate => {
+    let result = new DialogResult(!ok, output);
+
+    this._closePromise = invokeLifecycle(this.viewModel, 'canDeactivate', result).then(canDeactivate => {
       if (canDeactivate) {
-        return invokeLifecycle(this.viewModel, 'deactivate')
+        return invokeLifecycle(this.viewModel, 'deactivate', result)
           .then(() => {
             return this.renderer.hideDialog(this);
           }).then(() => {
             this.controller.unbind();
-            let result = new DialogResult(!ok, output);
             if (!this.settings.rejectOnCancel || ok) {
               this._resolve(result);
             } else {
